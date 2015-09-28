@@ -18,14 +18,14 @@ Since the relaying application will run on a volunteering user’s personal comp
 * Components involved: There are two other components that have already been created. These components are the client-side application and the open-internet facing proxy. Additionally, Wireshark will be used in testing.  
 
 ## Timeline
-1. September 25
+1. October 2
   * A secure connection from a client to the volunteer relay is established.
   * Handshake/Key exchange occurs through an OpenSSL connection.
-2. October 2
+2. October 9
   * A secure connection from the volunteer relay to the open-internet facing proxy is established.
   * Handshake/Key exchange occurs through an OpenSSL connection.
-3. October 9
+3. October 23
   * Secure communication from a client to the open-internet facing proxy is functional.
-4. October 23
+4. October 30
   * Data packets are properly routed for N-number of clients.
   * HTTP/HTTPS request are tagged in transit to ensure proper routing.  
