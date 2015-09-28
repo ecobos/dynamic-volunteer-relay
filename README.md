@@ -26,6 +26,6 @@ Since the relaying application will run on a volunteering user’s personal comp
   * Handshake/Key exchange occurs through an OpenSSL connection.
 3. October 23
   * Secure communication from a client to the open-internet facing proxy is functional.
-4. October 30
+4. November 6
   * Data packets are properly routed for N-number of clients.
   * HTTP/HTTPS request are tagged in transit to ensure proper routing.  
