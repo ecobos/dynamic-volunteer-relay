@@ -15,11 +15,13 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     clientconnection.cpp \
-    sslserver.cpp
+    sslserver.cpp \
+    staticproxyconnection.cpp
 
 HEADERS  += mainwindow.h \
     clientconnection.h \
-    sslserver.h
+    sslserver.h \
+    staticproxyconnection.h
 
 FORMS    += mainwindow.ui
 

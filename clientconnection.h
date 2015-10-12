@@ -10,7 +10,10 @@
 #include <QObject>
 #include "sslserver.h"
 
+#include <QNetworkReply>
 #include <QDebug>  // For Debugging purposes
+
+#include "staticproxyconnection.h"
 
 class ClientConnection : public QObject
 {
@@ -23,6 +26,7 @@ public:
 public slots:
     void acceptNewConnection();
     void stopListening();
+    void onConfigFileAttained(QNetworkReply*);
 
 private:
     SslServer *mSslServer;

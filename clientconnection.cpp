@@ -8,8 +8,16 @@
 #include <Qfile>
 #include "clientconnection.h"
 
+#include <QUrl>
+#include <QNetworkRequest>
+#include <QNetworkAccessManager>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
+
 ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
-{
+{    
     mSslServer = new SslServer(this);
 
     /*
@@ -107,6 +115,34 @@ void ClientConnection::acceptNewConnection()
     qDebug() << "Replied";
     socket->close();
     delete socket;
+
+    //QUrl url("http://karldotson.com/config.json");
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    //QNetworkRequest httpRequest(url);
+
+    connect(networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(onConfigFileAttained(QNetworkReply*)));
+    networkManager->get(QNetworkRequest(QUrl("http://karldotson.com/config.json")));
+    delete networkManager;
+}
+
+void ClientConnection::onConfigFileAttained(QNetworkReply* reply){
+    qDebug() << "Im in slot";
+    if (reply->error() == QNetworkReply::NoError){
+        QString data = (QString) reply->readAll();
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(data.toUtf8());
+        QJsonObject jsonObject = jsonResponse.object();
+        QString host = jsonObject["host"].toString();
+        quint16 port = jsonObject["port"].toInt();
+        QString PK = jsonObject["PK"].toString();
+        qDebug() << host << port << PK;
+
+        StaticProxyConnection *spConnection = new StaticProxyConnection(this,host,port);
+
+        spConnection->startConnection();
+
+    }else {
+        qDebug() << "Something went wrong in the slot";
+    }
 }
 
 /**
