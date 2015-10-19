@@ -58,7 +58,6 @@ void MainWindow::StartProxy(){
     }else {
         qDebug() << "Action ignored";
     }
-
 }
 
 /**
@@ -72,6 +71,8 @@ void MainWindow::StopProxy(){
     // Protecting against a null pointer dereference
     if(mClientConnect){
         mClientConnect->stopListening();
+        mClientConnect->deleteLater(); // Deletes the object being pointed at
+        mClientConnect = NULL; // Also remove pointer address
         qDebug() << "stop listening fired";
     }else {
         qDebug() << "Action ignored";

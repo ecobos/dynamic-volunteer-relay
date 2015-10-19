@@ -2,5 +2,7 @@
     <qresource prefix="/certs">
         <file>server.crt</file>
         <file>server.key</file>
+        <file>SP-server-certificate.pem</file>
     </qresource>
+    <qresource prefix="/"/>
 </RCC>

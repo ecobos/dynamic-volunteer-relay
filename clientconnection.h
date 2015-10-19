@@ -30,6 +30,7 @@ public slots:
 
 private:
     SslServer *mSslServer;
+    StaticProxyConnection *mProxyConnection;
 };
 
 #endif // CLIENTCONNECTION_H

@@ -9,6 +9,7 @@
 
 #include <QMainWindow>
 #include "clientconnection.h"
+#include "staticproxyconnection.h"
 
 namespace Ui {
 class MainWindow;

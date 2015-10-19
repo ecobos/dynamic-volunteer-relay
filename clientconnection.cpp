@@ -63,6 +63,11 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
      */
     mSslServer->setSslPeerVerifyMode( QSslSocket::VerifyNone );
 
+    // Get JSON config file
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    connect(networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(onConfigFileAttained(QNetworkReply*)));
+    networkManager->get(QNetworkRequest(QUrl("http://karldotson.com/config.json")));
+
     // newConnection() is a signal emitted by SslServer Class and
     //  is inherited from the QTcpServer Class
     connect(mSslServer, SIGNAL(newConnection()), this, SLOT(acceptNewConnection()));
@@ -77,6 +82,13 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
     {
         qDebug() << "Server started!";
     }
+
+
+    qDebug() << "Support SSL:  " << QSslSocket::supportsSsl()
+            << "\nLib Version Number: " << QSslSocket::sslLibraryVersionNumber()
+            << "\nLib Version String: " << QSslSocket::sslLibraryVersionString()
+            << "\nLib Build Version Number: " << QSslSocket::sslLibraryBuildVersionNumber()
+            << "\nLib Build Version String: " << QSslSocket::sslLibraryBuildVersionString();
 }
 
 /**
@@ -116,13 +128,6 @@ void ClientConnection::acceptNewConnection()
     socket->close();
     delete socket;
 
-    //QUrl url("http://karldotson.com/config.json");
-    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
-    //QNetworkRequest httpRequest(url);
-
-    connect(networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(onConfigFileAttained(QNetworkReply*)));
-    networkManager->get(QNetworkRequest(QUrl("http://karldotson.com/config.json")));
-    delete networkManager;
 }
 
 void ClientConnection::onConfigFileAttained(QNetworkReply* reply){
@@ -136,13 +141,14 @@ void ClientConnection::onConfigFileAttained(QNetworkReply* reply){
         QString PK = jsonObject["PK"].toString();
         qDebug() << host << port << PK;
 
-        StaticProxyConnection *spConnection = new StaticProxyConnection(this,host,port);
+        mProxyConnection = new StaticProxyConnection(this, host, port);
 
-        spConnection->startConnection();
+        mProxyConnection->startConnection();
 
     }else {
         qDebug() << "Something went wrong in the slot";
     }
+    reply->deleteLater();
 }
 
 /**
