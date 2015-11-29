@@ -32,6 +32,10 @@ void SslServer::incomingConnection(qintptr socketDescriptor)
     this->addPendingConnection(mSslSocket);
 }
 
+QSslSocket* SslServer::nextPendingConnection(){
+    return (QSslSocket*) this->nextPendingConnection();
+}
+
 /**
  * Sets the server's certificate.
  *
@@ -85,4 +89,6 @@ void SslServer::setSslPeerVerifyMode(QSslSocket::PeerVerifyMode verifyMode){
 void SslServer::onSslErrors(const QList <QSslError> & errors){
     // UNDER DEVELOPMENT
     qDebug() << "Errors with SSL";
+    foreach (const QSslError &error, errors)
+        qDebug() << error.errorString();
 }

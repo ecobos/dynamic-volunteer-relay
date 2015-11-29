@@ -8,12 +8,13 @@
 #define CLIENTCONNECTION_H
 
 #include <QObject>
-#include "sslserver.h"
+#include <QSslSocket>
 
-#include <QNetworkReply>
+#include "sslserver.h"
+#include "staticproxyconnection.h"
+
 #include <QDebug>  // For Debugging purposes
 
-#include "staticproxyconnection.h"
 
 class ClientConnection : public QObject
 {
@@ -26,11 +27,14 @@ public:
 public slots:
     void acceptNewConnection();
     void stopListening();
-    void onConfigFileAttained(QNetworkReply*);
 
 private:
     SslServer *mSslServer;
-    StaticProxyConnection *mProxyConnection;
+    QSslSocket *mSocket;
+
+    StaticProxyConnection *mStaticProxy;
+    QSslSocket *mClientSocket;
+    QSslSocket *mStaticProxySocket;
 };
 
 #endif // CLIENTCONNECTION_H

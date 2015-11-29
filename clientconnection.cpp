@@ -4,16 +4,8 @@
  * CECS 476 - Computer Security
  */
 
-#include <QSslSocket>
 #include <Qfile>
 #include "clientconnection.h"
-
-#include <QUrl>
-#include <QNetworkRequest>
-#include <QNetworkAccessManager>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
 
 
 ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
@@ -50,7 +42,7 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
      *
      * Ref: http://doc.qt.io/qt-5/qssl.html#SslProtocol-enum
      */
-    mSslServer->setSslProtocol( QSsl::SecureProtocols );
+    mSslServer->setSslProtocol( QSsl::TlsV1_0 );
 
     /*
      * This setting does not apply to a server but I am leaving it
@@ -62,11 +54,6 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
      *  Ref: http://doc.qt.io/qt-5/qsslsocket.html#PeerVerifyMode-enum
      */
     mSslServer->setSslPeerVerifyMode( QSslSocket::VerifyNone );
-
-    // Get JSON config file
-    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
-    connect(networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(onConfigFileAttained(QNetworkReply*)));
-    networkManager->get(QNetworkRequest(QUrl("http://karldotson.com/config.json")));
 
     // newConnection() is a signal emitted by SslServer Class and
     //  is inherited from the QTcpServer Class
@@ -82,13 +69,6 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
     {
         qDebug() << "Server started!";
     }
-
-
-    qDebug() << "Support SSL:  " << QSslSocket::supportsSsl()
-            << "\nLib Version Number: " << QSslSocket::sslLibraryVersionNumber()
-            << "\nLib Version String: " << QSslSocket::sslLibraryVersionString()
-            << "\nLib Build Version Number: " << QSslSocket::sslLibraryBuildVersionNumber()
-            << "\nLib Build Version String: " << QSslSocket::sslLibraryBuildVersionString();
 }
 
 /**
@@ -99,23 +79,25 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
 void ClientConnection::acceptNewConnection()
 {
     /*
-     * Since out SslServer Class is extending the QTcpServer class, the
-     *  nextPendingConnection() function will return a QTcpSocket. We know
-     *  and can guarantee that what is being returned is a QSslSocket reference.
-     *  Therefore, we are able to safely cast it to the proper data type.
+     * Get the next pending connection
      */
-    QSslSocket *socket = (QSslSocket*) mSslServer->nextPendingConnection();
+    mSocket = mSslServer->nextPendingConnection();
     qDebug() << "New Connection accepted";
+}
 
-    // Send our reply to client to let them know that we can communicate :)
-    socket->write("\n****Hello client****\n\r\n");
+void ClientConnection::communicate(){
 
+    /* WILL LIKELY NEED THREAD HERE */
+
+
+
+    mSocket->readAll();
     /*
-     * This function write as much as possible from the internal write buffer
+     * This function writes as much as possible from the internal write buffer
      *  to the underlying network socket, without blocking. It starts sending
      *  buffered data immediately
      */
-    socket->flush();
+    mSocket->flush();
 
     /*
      * For buffered devices, this function waits until a payload of buffered
@@ -123,33 +105,17 @@ void ClientConnection::acceptNewConnection()
      *  has been emitted, or until the msecs have passed
      *
      */
-    socket->waitForBytesWritten(3000);
+    mSocket->waitForBytesWritten(3000);
     qDebug() << "Replied";
-    socket->close();
-    delete socket;
 
 }
 
-void ClientConnection::onConfigFileAttained(QNetworkReply* reply){
-    qDebug() << "Im in slot";
-    if (reply->error() == QNetworkReply::NoError){
-        QString data = (QString) reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(data.toUtf8());
-        QJsonObject jsonObject = jsonResponse.object();
-        QString host = jsonObject["host"].toString();
-        quint16 port = jsonObject["port"].toInt();
-        QString PK = jsonObject["PK"].toString();
-        qDebug() << host << port << PK;
 
-        mProxyConnection = new StaticProxyConnection(this, host, port);
-
-        mProxyConnection->startConnection();
-
-    }else {
-        qDebug() << "Something went wrong in the slot";
-    }
-    reply->deleteLater();
+void ClientConnection::connectToSPorFail(QString host, quint16 port){
+    mStaticProxy = new StaticProxyConnection(this, host, port);
+    mStaticProxy->startConnection();
 }
+
 
 /**
  * Stops the SSL Server from listening on the current address and port
@@ -161,5 +127,7 @@ void ClientConnection::stopListening(){
         mSslServer->close();
         qDebug() << "stopped listening";
     }
+    mSslServer->deleteLater(); // Delete the SSL server object
+    mSslServer = NULL;
 }
 

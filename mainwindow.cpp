@@ -24,8 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->statusLabel->setText(tr("Status: Stopped"));
 
     // Bind the a button's actions with a handling method
-    connect(ui->startProxyButton, SIGNAL(clicked()), this, SLOT(StartProxy()));
-    connect(ui->stopProxyButton, SIGNAL(clicked()), this, SLOT(StopProxy()));
+    connect(ui->proxyButton, SIGNAL(clicked()), this, SLOT(toggle()));
 }
 
 /**
@@ -35,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
  */
 MainWindow::~MainWindow()
 {
+    delete mVolunteer;
     delete ui;
 }
 
@@ -43,7 +43,7 @@ MainWindow::~MainWindow()
  *
  * @brief MainWindow::StartProxy
  */
-void MainWindow::StartProxy(){
+void MainWindow::startProxy(){
     ui->statusLabel->setText(tr("Status: Running"));
 
     /* Only create a new object if one doesn't exist.
@@ -52,12 +52,12 @@ void MainWindow::StartProxy(){
     *  this check will ensure that a previously created object is
     *  not overwritten by a new one.
     */
-    if(!mClientConnect){
-        mClientConnect = new ClientConnection(this);
-        qDebug() << "Created a new ClientConnection object";
-    }else {
-        qDebug() << "Action ignored";
-    }
+
+   mVolunteer = new DynamicVolunteer(this);
+   qDebug() << "Created a new ClientConnection object";
+
+   // Update the toggle button with the next state
+   ui->proxyButton->setText(tr("Stop"));
 }
 
 /**
@@ -65,16 +65,21 @@ void MainWindow::StartProxy(){
  *
  * @brief MainWindow::StopProxy
  */
-void MainWindow::StopProxy(){
+void MainWindow::stopProxy(){
     ui->statusLabel->setText(tr("Status: Stopped"));
+    emit stop();
+    mVolunteer->deleteLater(); // Deletes the object being pointed at
+    mVolunteer = NULL; // Also remove pointer address
+    qDebug() << "stop listening fired";
 
-    // Protecting against a null pointer dereference
-    if(mClientConnect){
-        mClientConnect->stopListening();
-        mClientConnect->deleteLater(); // Deletes the object being pointed at
-        mClientConnect = NULL; // Also remove pointer address
-        qDebug() << "stop listening fired";
+    // Update the toggle button with the next state
+    ui->proxyButton->setText(tr("Start Volunteering"));
+}
+
+void MainWindow::toggle(){
+    if(!mVolunteer){
+        this->startProxy();
     }else {
-        qDebug() << "Action ignored";
+        this->stopProxy();
     }
 }

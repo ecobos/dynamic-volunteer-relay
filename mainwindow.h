@@ -8,8 +8,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "clientconnection.h"
-#include "staticproxyconnection.h"
+#include "dynamicvolunteer.h"
 
 namespace Ui {
 class MainWindow;
@@ -37,13 +36,18 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+signals:
+    void stop();
+
 public slots:
-    void StartProxy();
-    void StopProxy();
+    void toggle();
 
 private:
     Ui::MainWindow *ui;
-    ClientConnection *mClientConnect;
+    DynamicVolunteer *mVolunteer;
+
+    void startProxy();
+    void stopProxy();
 };
 
 #endif // MAINWINDOW_H
