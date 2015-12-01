@@ -8,10 +8,11 @@
 #define CLIENTCONNECTION_H
 
 #include <QObject>
+#include <QString>
 #include <QSslSocket>
 
 #include "sslserver.h"
-#include "staticproxyconnection.h"
+#include "StaticProxyConnection.h"
 
 #include <QDebug>  // For Debugging purposes
 
@@ -21,20 +22,25 @@ class ClientConnection : public QObject
     Q_OBJECT
 public:
     explicit ClientConnection(QObject *parent = 0);
+    void setSP(const QString & host, quint16 port);
+
 
 //signals:
 
 public slots:
     void acceptNewConnection();
     void stopListening();
+    void clientToServerWrite();
+    void serverToClientWrite();
+
 
 private:
+    void connectToSPorFail();
     SslServer *mSslServer;
-    QSslSocket *mSocket;
-
-    StaticProxyConnection *mStaticProxy;
-    QSslSocket *mClientSocket;
-    QSslSocket *mStaticProxySocket;
+    QSslSocket *mClientSocket; 
+    StaticProxyConnection *mSPConnection;
+    QString mSP_Host;
+    quint16 mSP_Port;
 };
 
 #endif // CLIENTCONNECTION_H

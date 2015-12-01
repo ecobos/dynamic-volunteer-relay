@@ -8,7 +8,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "dynamicvolunteer.h"
+#include "Controller.h"
 
 namespace Ui {
 class MainWindow;
@@ -44,7 +44,7 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
-    DynamicVolunteer *mVolunteer;
+    Controller *mController;
 
     void startProxy();
     void stopProxy();

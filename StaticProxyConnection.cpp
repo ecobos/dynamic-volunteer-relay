@@ -1,10 +1,9 @@
-#include "staticproxyconnection.h"
+#include "StaticProxyConnection.h"
 #include <QHostAddress>
 #include <QtNetwork/QSslCipher>
 
 
-StaticProxyConnection::StaticProxyConnection(QObject *parent, const QString &host, quint16 port)
-    : QObject(parent), mHost(host), mPort(port)
+StaticProxyConnection::StaticProxyConnection(QObject *parent): QObject(parent)
 {
     mSocket = new QSslSocket(this);
     connect(mSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(socketStateChanged(QAbstractSocket::SocketState)));
@@ -12,7 +11,7 @@ StaticProxyConnection::StaticProxyConnection(QObject *parent, const QString &hos
     connect(mSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(socketError(QAbstractSocket::SocketError)));
     connect(mSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrors(QList<QSslError>)));
     connect(mSocket, SIGNAL(bytesWritten(qint64)), this, SLOT(bytesWritten(qint64)));
-    connect(mSocket, SIGNAL(readyRead()), this, SLOT(read()));
+    connect(mSocket, SIGNAL(readyRead()), this, SLOT(readReady()));
     connect(parent, SIGNAL(stop()), this, SLOT(stop()));
 
 
@@ -25,12 +24,12 @@ StaticProxyConnection::StaticProxyConnection(QObject *parent, const QString &hos
     mSocket->setProtocol(QSsl::TlsV1_0);
 }
 
-void StaticProxyConnection::startConnection(){
+void StaticProxyConnection::connectTo(const QString &host, quint16 port){
 
     qDebug() << "Connecting...";
 
     // this is not blocking call
-    mSocket->connectToHostEncrypted(mHost, mPort);
+    mSocket->connectToHostEncrypted(host, port);
 
     // we need to wait...
     if(!mSocket->waitForConnected(50)){
@@ -57,19 +56,54 @@ bool StaticProxyConnection::ping(){
     }
 }
 
-void StaticProxyConnection::socketStateChanged(QAbstractSocket::SocketState state){
-    mSocketState = state;
-    /*
-    if(state == QAbstractSocket::ConnectedState){
-        this->connected();
-    } else if (state == QAbstractSocket::ClosingState || state == QAbstractSocket::UnconnectedState){
-        //this->disconnected();
+QByteArray StaticProxyConnection::read(){
+    QByteArray data;
+    if(mSocketState == QAbstractSocket::ConnectedState && mSocket->isEncrypted()){
+        data = mSocket->read(mSocket->encryptedBytesAvailable());
     }
-    */
+
+    // This may return null but okay for now.
+    return data;
 }
 
-void StaticProxyConnection::connected()
+void StaticProxyConnection::write(const QByteArray &dataToWrite){
+    if(mSocketState == QAbstractSocket::ConnectedState && mSocket->isEncrypted()){
+        qDebug() << "Writting " << dataToWrite;
+        mSocket->write(dataToWrite);
+    }
+}
+
+qint64 StaticProxyConnection::bytesAvailable(){
+    return mSocket->encryptedBytesAvailable();
+}
+
+bool StaticProxyConnection::isOpen(){
+    return mSocket->isOpen();
+}
+
+void StaticProxyConnection::disconnect()
 {
+    qDebug() << "Disconnected.";
+    if(mSocket != NULL){
+        delete mSocket;
+        mSocket = NULL;
+    }
+}
+
+/** --- SIGNALS --- **/
+
+void StaticProxyConnection::readReady()
+{
+    emit readyRead();
+}
+
+
+/** --- SLOTS --- **/
+void StaticProxyConnection::socketStateChanged(QAbstractSocket::SocketState state){
+    mSocketState = state;
+}
+
+void StaticProxyConnection::connected(){
     qDebug() << "Connected. Waiting for an encrypted connection.";
 
 }
@@ -86,44 +120,9 @@ void StaticProxyConnection::socketEncrypted(){
     mSocket->write(input.toUtf8() + "\r\n\r\n");
 }
 
-void StaticProxyConnection::disconnect()
-{
-    qDebug() << "Disconnected.";
-    if(mSocket != NULL){
-        delete mSocket;
-        mSocket = NULL;
-    }
-}
-
 void StaticProxyConnection::bytesWritten(qint64 bytes)
 {
     qDebug() << bytes << " bytes written...";
-}
-
-QByteArray StaticProxyConnection::read()
-{
-    qDebug() << "Reading...";
-    QByteArray received;
-    if(mSocketState == QAbstractSocket::ConnectedState){
-        received =  mSocket->readAll();
-        // read the data from the socket
-        qDebug() << QString::fromUtf8(received);
-    } else {
-        qDebug() << "read: socket not connected";
-        this->startConnection();
-    }
-
-    return received;
-}
-
-void StaticProxyConnection::write(const QString dataToWrite){
-    if(mSocketState == QAbstractSocket::ConnectedState){
-        qDebug() << "Writting " << dataToWrite;
-        mSocket->write(dataToWrite.toUtf8() + "\r\n\r\n");
-    } else {
-        qDebug() << "write: socket not connected";
-        this->startConnection();
-    }
 }
 
 void StaticProxyConnection::socketError(QAbstractSocket::SocketError)

@@ -5,7 +5,7 @@
  */
 
 #include <Qfile>
-#include "clientconnection.h"
+#include "ClientConnection.h"
 
 
 ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
@@ -67,9 +67,30 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent)
     }
     else
     {
-        qDebug() << "Server started!";
+        qDebug() << "Client server started and listening.";
     }
 }
+
+void ClientConnection::setSP(const QString & host, quint16 port){
+    mSP_Port = port;
+    mSP_Host = host;
+}
+
+void ClientConnection::connectToSPorFail(){
+    qDebug() << "Connecting to SP";
+    mSPConnection = new StaticProxyConnection(this);
+    mSPConnection->connectTo(mSP_Host, mSP_Port);
+    if(!mSPConnection->isOpen()){
+        qDebug() << "SP connection failed";
+    }
+
+    connect(mSPConnection, SIGNAL(readyRead()), this, SLOT(serverToClientWrite()));
+}
+
+/* -------------------------
+ *          SLOTS
+ * -------------------------
+ */
 
 /**
  * Accepts the next pending SSL socket conenction.
@@ -81,41 +102,29 @@ void ClientConnection::acceptNewConnection()
     /*
      * Get the next pending connection
      */
-    mSocket = mSslServer->nextPendingConnection();
-    qDebug() << "New Connection accepted";
+    mClientSocket = mSslServer->nextPendingConnection();
+    qDebug() << "New client connection accepted";
+    this->connectToSPorFail();
+    connect(mClientSocket, SIGNAL(readyRead()), this, SLOT(clientToServerWrite()));
 }
 
-void ClientConnection::communicate(){
+void ClientConnection::clientToServerWrite(){
+    qDebug() << "Received " << mClientSocket->bytesAvailable() << "bytes from client";
+    qDebug() << "Sending to server...";
 
-    /* WILL LIKELY NEED THREAD HERE */
+    // From Docs: QByteArray QIODevice::read(qint64 maxSize)
+    QByteArray data = mClientSocket->read(mClientSocket->bytesAvailable());
 
-
-
-    mSocket->readAll();
-    /*
-     * This function writes as much as possible from the internal write buffer
-     *  to the underlying network socket, without blocking. It starts sending
-     *  buffered data immediately
-     */
-    mSocket->flush();
-
-    /*
-     * For buffered devices, this function waits until a payload of buffered
-     *  written data has been written to the device and the bytesWritten() signal
-     *  has been emitted, or until the msecs have passed
-     *
-     */
-    mSocket->waitForBytesWritten(3000);
-    qDebug() << "Replied";
-
+    // From Docs: qint64 QIODevice::write(const QByteArray & byteArray)
+    mSPConnection->write(data);
 }
 
-
-void ClientConnection::connectToSPorFail(QString host, quint16 port){
-    mStaticProxy = new StaticProxyConnection(this, host, port);
-    mStaticProxy->startConnection();
+void ClientConnection::serverToClientWrite(){
+    qDebug() << "Received " << mSPConnection->bytesAvailable() << "bytes from server";
+    qDebug() << "Sending to client...";
+    QByteArray data = mSPConnection->read();
+    mClientSocket->write(data);
 }
-
 
 /**
  * Stops the SSL Server from listening on the current address and port

@@ -1,20 +1,21 @@
-#ifndef DYNAMICVOLUNTEER_H
-#define DYNAMICVOLUNTEER_H
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
 
 #include <QObject>
 #include <QSslSocket>
 #include <QNetworkReply>
 
-#include "clientconnection.h"
+#include "ClientConnection.h"
 
-class DynamicVolunteer : public QObject
+class Controller : public QObject
 {
     Q_OBJECT
 public:
-    explicit DynamicVolunteer(QObject *parent = 0);
+    explicit Controller(QObject *parent = 0);
 
 signals:
     void stop();
+    void getSP();
 
 public slots:
     void onConfigFileAttained(QNetworkReply*);
@@ -26,4 +27,4 @@ private:
     void startClientServer();
 };
 
-#endif // DYNAMICVOLUNTEER_H
+#endif // CONTROLLER_H

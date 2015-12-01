@@ -8,19 +8,23 @@ class StaticProxyConnection : public QObject
 {
     Q_OBJECT
 public:
-    explicit StaticProxyConnection(QObject *parent = 0, const QString &host ="localhost", quint16 port = 0);
-    void startConnection();
-    void write(const QString);
-    void disconnect();
+    explicit StaticProxyConnection(QObject *parent = 0);
+    void connectTo(const QString &, quint16);
     bool ping();
+    QByteArray read();
+    void write(const QByteArray &);
+    qint64 bytesAvailable();
+    bool isOpen();
+    void disconnect();
 
 signals:
     //void disconnected();
+    void readyRead();
 
 public slots:
     void connected();
     void bytesWritten(qint64 bytes);
-    QByteArray read();
+    void readReady();
     void socketStateChanged(QAbstractSocket::SocketState);
     void socketEncrypted();
     void socketError(QAbstractSocket::SocketError);

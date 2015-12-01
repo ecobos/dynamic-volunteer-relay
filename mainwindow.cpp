@@ -34,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
  */
 MainWindow::~MainWindow()
 {
-    delete mVolunteer;
+    delete mController;
     delete ui;
 }
 
@@ -53,7 +53,7 @@ void MainWindow::startProxy(){
     *  not overwritten by a new one.
     */
 
-   mVolunteer = new DynamicVolunteer(this);
+   mController = new Controller(this);
    qDebug() << "Created a new ClientConnection object";
 
    // Update the toggle button with the next state
@@ -68,8 +68,8 @@ void MainWindow::startProxy(){
 void MainWindow::stopProxy(){
     ui->statusLabel->setText(tr("Status: Stopped"));
     emit stop();
-    mVolunteer->deleteLater(); // Deletes the object being pointed at
-    mVolunteer = NULL; // Also remove pointer address
+    mController->deleteLater(); // Deletes the object being pointed at
+    mController = NULL; // Also remove pointer address
     qDebug() << "stop listening fired";
 
     // Update the toggle button with the next state
@@ -77,7 +77,7 @@ void MainWindow::stopProxy(){
 }
 
 void MainWindow::toggle(){
-    if(!mVolunteer){
+    if(!mController){
         this->startProxy();
     }else {
         this->stopProxy();

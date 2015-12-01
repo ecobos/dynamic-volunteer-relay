@@ -16,17 +16,17 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-    clientconnection.cpp \
     sslserver.cpp \
-    staticproxyconnection.cpp \
     mainwindow.cpp \
-    dynamicvolunteer.cpp
+    Controller.cpp \
+    ClientConnection.cpp \
+    StaticProxyConnection.cpp
 
 HEADERS  += mainwindow.h \
-    clientconnection.h \
     sslserver.h \
-    staticproxyconnection.h \
-    dynamicvolunteer.h
+    Controller.h \
+    ClientConnection.h \
+    StaticProxyConnection.h
 
 FORMS    += mainwindow.ui
 
