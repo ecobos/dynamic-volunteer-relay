@@ -25,7 +25,9 @@ public:
     void setSP(const QString & host, quint16 port);
 
 
-//signals:
+signals:
+    void getSP();
+    void stop();
 
 public slots:
     void acceptNewConnection();

@@ -32,9 +32,10 @@ void SslServer::incomingConnection(qintptr socketDescriptor)
     this->addPendingConnection(mSslSocket);
 }
 
-QSslSocket* SslServer::nextPendingConnection(){
-    return (QSslSocket*) this->nextPendingConnection();
-}
+/*QTcpSocket* SslServer::nextPendingConnection(){
+    qDebug() << "Getting next pending connection";
+    return this->nextPendingConnection();
+}*/
 
 /**
  * Sets the server's certificate.

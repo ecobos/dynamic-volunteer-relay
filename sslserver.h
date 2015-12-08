@@ -24,7 +24,7 @@ public:
     //bool setSslPrivateKey(const QString &fileName, QSsl::KeyAlgorithm algorithm = QSsl::Rsa, QSsl::EncodingFormat format = QSsl::Pem, const QByteArray &passPhrase = QByteArray());
     void setSslProtocol(QSsl::SslProtocol protocol = QSsl::SecureProtocols);
     void setSslPeerVerifyMode(QSslSocket::PeerVerifyMode verifyMode = QSslSocket::VerifyPeer);
-    QSslSocket* nextPendingConnection();
+    //QTcpSocket* nextPendingConnection();
 
 public slots:
     void incomingConnection(qintptr socketDescriptor) Q_DECL_OVERRIDE;

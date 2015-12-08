@@ -102,7 +102,7 @@ void ClientConnection::acceptNewConnection()
     /*
      * Get the next pending connection
      */
-    mClientSocket = mSslServer->nextPendingConnection();
+    mClientSocket = (QSslSocket *) mSslServer->nextPendingConnection();
     qDebug() << "New client connection accepted";
     this->connectToSPorFail();
     connect(mClientSocket, SIGNAL(readyRead()), this, SLOT(clientToServerWrite()));

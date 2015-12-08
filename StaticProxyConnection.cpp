@@ -114,10 +114,6 @@ void StaticProxyConnection::socketEncrypted(){
     QString cipher = QString("This session -- Auth:%1, Cipher:%2 (Used:%3/ Supported:%4)").arg(ciph.authenticationMethod())
                         .arg(ciph.name()).arg(ciph.usedBits()).arg(ciph.supportedBits());;
     qDebug() << cipher;
-
-    // Hey server
-    QString input = "Ello from the volunteer";
-    mSocket->write(input.toUtf8() + "\r\n\r\n");
 }
 
 void StaticProxyConnection::bytesWritten(qint64 bytes)
@@ -140,5 +136,5 @@ void StaticProxyConnection::sslErrors(const QList<QSslError> &errors)
 }
 
 void StaticProxyConnection::stop(){
-
+    // needs implementation
 }
