@@ -1,15 +1,14 @@
-#include "StaticProxyConnection.h"
-#include <QHostAddress>
-#include <QtNetwork/QSslCipher>
-
-StaticProxyConnection::StaticProxyConnection(QObject *parent): QObject(parent)
-{
+StaticProxyConnection::StaticProxyConnection(QObject *parent): QObject(parent){
     mSocket = new QSslSocket(this);
-    connect(mSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(socketStateChanged(QAbstractSocket::SocketState)));
+    connect(mSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)),
+            this, SLOT(socketStateChanged(QAbstractSocket::SocketState)));
     connect(mSocket, SIGNAL(encrypted()), this, SLOT(socketEncrypted()));
-    connect(mSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(socketError(QAbstractSocket::SocketError)));
-    connect(mSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrors(QList<QSslError>)));
-    connect(mSocket, SIGNAL(bytesWritten(qint64)), this, SLOT(bytesWritten(qint64)));
+    connect(mSocket, SIGNAL(error(QAbstractSocket::SocketError)), this,
+            SLOT(socketError(QAbstractSocket::SocketError)));
+    connect(mSocket, SIGNAL(sslErrors(QList<QSslError>)), this,
+            SLOT(sslErrors(QList<QSslError>)));
+    connect(mSocket, SIGNAL(bytesWritten(qint64)), this,
+            SLOT(bytesWritten(qint64)));
     connect(mSocket, SIGNAL(readyRead()), this, SLOT(readReady()));
     connect(parent, SIGNAL(stop()), this, SLOT(stop()));
 
@@ -33,7 +32,7 @@ StaticProxyConnection::StaticProxyConnection(QObject *parent): QObject(parent)
 void StaticProxyConnection::connectTo(const QString &host, quint16 port){
     qDebug() << "Connecting...";
 
-    // This call is non-blocking, therefore we will need to wait for the connection
+    // Non-blocking call, will need to wait for the connection
     mSocket->connectToHostEncrypted(host, port);
     if(!mSocket->waitForConnected(100)){
         qDebug() << "Error: " << mSocket->errorString();
@@ -96,18 +95,6 @@ void StaticProxyConnection::disconnect(){
     }
 }
 
-/** --- SIGNALS --- **/
-
-void StaticProxyConnection::readReady(){
-    emit readyRead();
-}
-
-
-/** --- SLOTS --- **/
-void StaticProxyConnection::socketStateChanged(QAbstractSocket::SocketState state){
-    mSocketState = state;
-}
-
 /**
  * [Slot] Called when the socket makes a connection, however the socket
  * is not yet encrypted.
@@ -125,31 +112,8 @@ void StaticProxyConnection::connected(){
  */
 void StaticProxyConnection::socketEncrypted(){
     qDebug() << "Connection encrypted!";
-
-    // Code below is only used for debugging purposes
-    QSslCipher sessionCipher = mSocket->sessionCipher();
-    QString availableCipher = QString("Available Ciphers > Auth:%1, Cipher:%2 ( Used:%3 / Supported:%4 )")
-                        .arg(sessionCipher.authenticationMethod())
-                        .arg(sessionCipher.name()).arg(sessionCipher.usedBits()).arg(sessionCipher.supportedBits());;
-    qDebug() << availableCipher;
 }
 
 void StaticProxyConnection::bytesWritten(qint64 bytes){
     qDebug() << bytes << " bytes written...";
-}
-
-void StaticProxyConnection::socketError(QAbstractSocket::SocketError){
-    qDebug() << "Socket Error: " << mSocket->errorString();
-
-}
-
-void StaticProxyConnection::sslErrors(const QList<QSslError> &errors){
-    qDebug() << "SSL Error on: ";
-    foreach (const QSslError &error, errors)
-        qDebug() << error.errorString();
-
-}
-
-void StaticProxyConnection::stop(){
-    // needs implementation
 }

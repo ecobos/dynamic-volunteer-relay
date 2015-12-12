@@ -2,13 +2,13 @@
 \contentsline {chapter}{\numberline {2}Research}{4}
 \contentsline {chapter}{\numberline {3}Overview}{5}
 \contentsline {section}{\numberline {3.1}Problem Statement}{5}
-\contentsline {section}{\numberline {3.2}Challenges (as an individual)}{5}
+\contentsline {section}{\numberline {3.2}Challenges}{5}
 \contentsline {section}{\numberline {3.3}Solutions}{6}
-\contentsline {section}{\numberline {3.4}Your individual work}{6}
-\contentsline {section}{\numberline {3.5}Comparison of your work with your teammates}{6}
-\contentsline {section}{\numberline {3.6}Shortcomings and their reasons}{6}
-\contentsline {section}{\numberline {3.7}Lessons learned}{7}
-\contentsline {chapter}{\numberline {4}Implementation and results (most important part of report)}{8}
-\contentsline {chapter}{\numberline {5}Conclusion and Future Work}{9}
-\contentsline {chapter}{\numberline {6}Bibliography/Citation}{10}
-\contentsline {chapter}{\numberline {7}Appendix}{11}
+\contentsline {section}{\numberline {3.4}Individual Work}{7}
+\contentsline {section}{\numberline {3.5}Comparing my work with teammates}{7}
+\contentsline {section}{\numberline {3.6}Shortcomings}{8}
+\contentsline {section}{\numberline {3.7}Lessons Learned}{8}
+\contentsline {chapter}{\numberline {4}Implementation}{9}
+\contentsline {chapter}{\numberline {5}Conclusion and Future Work}{11}
+\contentsline {chapter}{\numberline {6}Bibliography/Citation}{12}
+\contentsline {chapter}{\numberline {7}Appendix}{13}

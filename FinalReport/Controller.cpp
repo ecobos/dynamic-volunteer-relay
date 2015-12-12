@@ -1,13 +1,4 @@
-#include "Controller.h"
-#include <QUrl>
-#include <QNetworkRequest>
-#include <QNetworkAccessManager>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
-
-Controller::Controller(QObject *parent) : QObject(parent)
-{
+Controller::Controller(QObject *parent) : QObject(parent){
     mClient = NULL;
     connect(parent, SIGNAL(stop()), this, SLOT(stopConnections()));
     getAvailableSPfromCC();
