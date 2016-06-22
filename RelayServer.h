@@ -11,22 +11,22 @@
 #include <QString>
 #include <QSslSocket>
 
-#include "sslserver.h"
+#include "SslServer.h"
 #include "StaticProxyConnection.h"
 
 #include <QDebug>  // For Debugging purposes
 
 
-class ClientConnection : public QObject
+class RelayServer : public QObject
 {
     Q_OBJECT
 public:
-    explicit ClientConnection(QObject *parent = 0);
-    void setSP(const QString & host, quint16 port);
+    explicit RelayServer(QObject *parent = 0);
+    void setStaticProxy(const QString & host, quint16 port);
 
 
 signals:
-    void getSP();
+    void getStaticProxy();
     void stop();
 
 public slots:

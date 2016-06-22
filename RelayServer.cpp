@@ -1,7 +1,7 @@
 #include <Qfile>
-#include "ClientConnection.h"
+#include "RelayServer.h"
 
-ClientConnection::ClientConnection(QObject *parent) : QObject(parent){    
+RelayServer::RelayServer(QObject *parent) : QObject(parent){
     mSslServer = new SslServer(this);
 
     /*
@@ -9,7 +9,7 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent){
      *  one that is recognized by Windows Explorer as a certificate,
      *  which .pem is not.
      */
-    QFile certFile(":/certs/server.crt");
+    QFile certFile("dvp_cert_cc_signed.crt");
     certFile.open(QIODevice::ReadOnly);
     QSslCertificate certificate( &certFile, QSsl::Pem );
     certFile.close();
@@ -20,7 +20,7 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent){
      *  rights on these files are very important, and some programs will refuse to
      *  load these certificates if they are set wrong.
      */
-    QFile keyFile(":/certs/server.key");  
+    QFile keyFile("dvp_cert_cc_signed.key");
     keyFile.open(QIODevice::ReadOnly);   
     QSslKey sslKey( &keyFile, QSsl::Rsa, QSsl::Pem );
     keyFile.close();
@@ -67,7 +67,7 @@ ClientConnection::ClientConnection(QObject *parent) : QObject(parent){
  * @param host IP of the host
  * @param port Port number of the host
  */
-void ClientConnection::setSP(const QString & host, quint16 port){
+void RelayServer::setStaticProxy(const QString & host, quint16 port){
     mSP_Port = port;
     mSP_Host = host;
 }
@@ -76,21 +76,25 @@ void ClientConnection::setSP(const QString & host, quint16 port){
  * Attempt to connect to the static proxy. Fail if not able.
  * @brief ClientConnection::connectToSPorFail
  */
-void ClientConnection::connectToSPorFail(){
+void RelayServer::connectToSPorFail(){
     qDebug() << "Connecting to SP";
     mSPConnection = new StaticProxyConnection(this);
+    if(mSP_Host == NULL || mSP_Port == 0 ){
+        emit getStaticProxy();
+        return;
+    }
     mSPConnection->connectTo(mSP_Host, mSP_Port);
     if(!mSPConnection->isOpen()){
         qDebug() << "SP connection failed";
     }
-    connect(mSPConnection, SIGNAL(readyRead()), this, SLOT(serverToClientWrite()));
+    connect(mSPConnection, SIGNAL(doRead()), this, SLOT(serverToClientWrite()));
 }
 
 /**
  * Accepts the next pending SSL socket conenction.
  * @brief ClientConnection::acceptNewConnection
  */
-void ClientConnection::acceptNewConnection(){
+void RelayServer::acceptNewConnection(){
     //Get the next pending connection
     mClientSocket = (QSslSocket *) mSslServer->nextPendingConnection();
     qDebug() << "New client connection accepted";
@@ -102,13 +106,13 @@ void ClientConnection::acceptNewConnection(){
  * [Slot] Handles the client socket's readyRead signal
  * @brief ClientConnection::clientToServerWrite
  */
-void ClientConnection::clientToServerWrite(){
-    qDebug() << "Received " << mClientSocket->bytesAvailable() << "bytes from client";
-    qDebug() << "Sending to server...";
+void RelayServer::clientToServerWrite(){
+    qDebug() << "[Client] Received " << mClientSocket->bytesAvailable() << "bytes from client. Sending to server...";
 
     // From Docs: QByteArray QIODevice::read(qint64 maxSize)
     QByteArray data = mClientSocket->read(mClientSocket->bytesAvailable());
 
+    qDebug() << "[Client] Actually read " << data.length() << " from client";
     // From Docs: qint64 QIODevice::write(const QByteArray & byteArray)
     mSPConnection->write(data);
 }
@@ -117,10 +121,11 @@ void ClientConnection::clientToServerWrite(){
  * [Slot] Handle the server socket's readyRead signal
  * @brief ClientConnection::serverToClientWrite
  */
-void ClientConnection::serverToClientWrite(){
-    qDebug() << "Received " << mSPConnection->bytesAvailable() << "bytes from server";
-    qDebug() << "Sending to client...";
-    QByteArray data = mSPConnection->read();
+void RelayServer::serverToClientWrite(){
+    qDebug() << "[Client] Received " << mSPConnection->bytesAvailable() << "bytes from server. Sending to client...";
+
+    QByteArray data = mSPConnection->readBytesAvailable();
+    qDebug() << "[Client] Actually read " << data.length() << " from server";
     mClientSocket->write(data);
 }
 
@@ -128,9 +133,9 @@ void ClientConnection::serverToClientWrite(){
  * Stops the SSL Server from listening on the current address and port
  * @brief ClientConnection::stopListening
  */
-void ClientConnection::stopListening(){
+void RelayServer::stopListening(){
     if(mSslServer->isListening()){
-        mSslServer->close();
+        //mSslServer->close();
         qDebug() << "stopped listening";
     }
     // Delete the SSL server object and clean up

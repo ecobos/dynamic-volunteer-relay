@@ -6,7 +6,7 @@
  * Forked from https://github.com/GuiTeK/Qt-SslServer/
  */
 
-#include "sslserver.h"
+#include "SslServer.h"
 
 SslServer::SslServer(QObject * parent) : QTcpServer(parent)
 { /*\ 0_0 \*/}

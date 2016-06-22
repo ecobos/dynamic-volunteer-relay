@@ -56,6 +56,7 @@ void MainWindow::startProxy(){
    mController = new Controller(this);
    qDebug() << "Created a new ClientConnection object";
 
+   mController->goOnline();
    // Update the toggle button with the next state
    ui->proxyButton->setText(tr("Stop"));
 }

@@ -16,18 +16,19 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-    sslserver.cpp \
     mainwindow.cpp \
     Controller.cpp \
-    ClientConnection.cpp \
-    StaticProxyConnection.cpp
+    StaticProxyConnection.cpp \
+    SslServer.cpp \
+    RelayServer.cpp
 
 HEADERS  += mainwindow.h \
-    sslserver.h \
     Controller.h \
-    ClientConnection.h \
-    StaticProxyConnection.h
+    StaticProxyConnection.h \
+    SslServer.h \
+    RelayServer.h
 
 FORMS    += mainwindow.ui
 
 RESOURCES = certificate.qrc
+

@@ -4,13 +4,15 @@
 
 StaticProxyConnection::StaticProxyConnection(QObject *parent): QObject(parent)
 {
-    mSocket = new QSslSocket(this);
+    mTotalBytesWritten = 0;
+    mSocket = new QTcpSocket(this); // QSslSocket
     connect(mSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(socketStateChanged(QAbstractSocket::SocketState)));
-    connect(mSocket, SIGNAL(encrypted()), this, SLOT(socketEncrypted()));
+    //connect(mSocket, SIGNAL(encrypted()), this, SLOT(socketEncrypted()));
     connect(mSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(socketError(QAbstractSocket::SocketError)));
-    connect(mSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrors(QList<QSslError>)));
-    connect(mSocket, SIGNAL(bytesWritten(qint64)), this, SLOT(bytesWritten(qint64)));
-    connect(mSocket, SIGNAL(readyRead()), this, SLOT(readReady()));
+    //connect(mSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrors(QList<QSslError>)));
+    //connect(mSocket, SIGNAL(encryptedBytesWritten(qint64)), this, SLOT(addToEncryptBytesWritten(qint64)));
+    connect(mSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+    connect(mSocket, SIGNAL(disconnected()), this, SLOT(disconnected()));
     connect(parent, SIGNAL(stop()), this, SLOT(stop()));
 
     // Certificte pinning. This tells Qt that it should trust the specified certificate
@@ -18,10 +20,10 @@ StaticProxyConnection::StaticProxyConnection(QObject *parent): QObject(parent)
     if (pseudoTrustedCA.empty()) {
         qFatal("Error: No Trusted Certificate Authorities");
     }
-    mSocket->setCaCertificates(pseudoTrustedCA);
+    //mSocket->setCaCertificates(pseudoTrustedCA);
 
     // Specify that we are only using the TLSv1 protocol
-    mSocket->setProtocol(QSsl::TlsV1_0);
+    //mSocket->setProtocol(QSsl::TlsV1_0);
 }
 
 /**
@@ -34,9 +36,14 @@ void StaticProxyConnection::connectTo(const QString &host, quint16 port){
     qDebug() << "Connecting...";
 
     // This call is non-blocking, therefore we will need to wait for the connection
-    mSocket->connectToHostEncrypted(host, port);
-    if(!mSocket->waitForConnected(100)){
-        qDebug() << "Error: " << mSocket->errorString();
+//    mSocket->connectToHostEncrypted(host, port);
+//    if(mSocket->waitForEncrypted(1000)){
+//        qDebug() << "Encrypted link successful";
+//    }
+
+    mSocket->connectToHost(host,port);
+    if(mSocket->waitForConnected(1000)){
+        qDebug("Can't connect");
     }
 }
 
@@ -45,10 +52,15 @@ void StaticProxyConnection::connectTo(const QString &host, quint16 port){
  * @brief StaticProxyConnection::read
  * @return byte array containg the received data
  */
-QByteArray StaticProxyConnection::read(){
+QByteArray StaticProxyConnection::readBytesAvailable(){
     QByteArray incomingData;
-    if(mSocketState == QAbstractSocket::ConnectedState && mSocket->isEncrypted()){
-        incomingData = mSocket->read(mSocket->encryptedBytesAvailable());
+    if(mSocketState == QAbstractSocket::ConnectedState /*&& mSocket->isEncrypted()*/ ){
+
+        incomingData = mSocket->read(mSocket->bytesAvailable());
+        //mSocket->waitForReadyRead();
+        qDebug()<< "[SP] Reading" << incomingData;
+    }else{
+        qDebug("[SP] Can't Read");
     }
     // TODO: This may return null but okay for now.
     return incomingData;
@@ -60,9 +72,13 @@ QByteArray StaticProxyConnection::read(){
  * @param dataToWrite
  */
 void StaticProxyConnection::write(const QByteArray &dataToWrite){
-    if(mSocketState == QAbstractSocket::ConnectedState && mSocket->isEncrypted()){
-        qDebug() << "Writting " << dataToWrite;
-        mSocket->write(dataToWrite);
+    if(mSocketState == QAbstractSocket::ConnectedState /*&& mSocket->isEncrypted() */){
+        qDebug() << "[SP] Writting " << dataToWrite;
+        qDebug() << "Wrote: " << mSocket->write(dataToWrite, dataToWrite.length());
+        //mSocket->waitForBytesWritten();
+        //mSocket->flush();
+    }else{
+        qDebug("Socket not encrypted yet");
     }
 }
 
@@ -72,7 +88,7 @@ void StaticProxyConnection::write(const QByteArray &dataToWrite){
  * @return number of bytes currently in the socket buffer
  */
 qint64 StaticProxyConnection::bytesAvailable(){
-    return mSocket->encryptedBytesAvailable();
+    return mSocket->bytesAvailable();
 }
 
 /**
@@ -84,22 +100,11 @@ bool StaticProxyConnection::isOpen(){
     return mSocket->isOpen();
 }
 
-/**
- * Disconnect from the static proxy
- * @brief StaticProxyConnection::disconnect
- */
-void StaticProxyConnection::disconnect(){
-    qDebug() << "Disconnected.";
-    if(mSocket != NULL){
-        delete mSocket;
-        mSocket = NULL;
-    }
-}
-
 /** --- SIGNALS --- **/
 
-void StaticProxyConnection::readReady(){
-    emit readyRead();
+void StaticProxyConnection::readyRead(){
+    qDebug("doRead() emitted");
+    emit doRead();
 }
 
 
@@ -125,31 +130,35 @@ void StaticProxyConnection::connected(){
  */
 void StaticProxyConnection::socketEncrypted(){
     qDebug() << "Connection encrypted!";
-
+    mSocket->setSocketOption(QAbstractSocket::KeepAliveOption, true);
     // Code below is only used for debugging purposes
-    QSslCipher sessionCipher = mSocket->sessionCipher();
-    QString availableCipher = QString("Available Ciphers > Auth:%1, Cipher:%2 ( Used:%3 / Supported:%4 )")
-                        .arg(sessionCipher.authenticationMethod())
-                        .arg(sessionCipher.name()).arg(sessionCipher.usedBits()).arg(sessionCipher.supportedBits());;
-    qDebug() << availableCipher;
+//    QSslCipher sessionCipher = mSocket->sessionCipher();
+//    QString availableCipher = QString("Available Ciphers > Auth:%1, Cipher:%2 ( Used:%3 / Supported:%4 )")
+//                        .arg(sessionCipher.authenticationMethod())
+//                        .arg(sessionCipher.name()).arg(sessionCipher.usedBits()).arg(sessionCipher.supportedBits());;
+//    qDebug() << availableCipher;
 }
 
-void StaticProxyConnection::bytesWritten(qint64 bytes){
-    qDebug() << bytes << " bytes written...";
+void StaticProxyConnection::addToEncryptBytesWritten(qint64 bytes){
+    //mTotalBytesWritten += bytes;
+    qDebug() << "[SP] " << bytes << " encrypted bytes written.";
 }
 
-void StaticProxyConnection::socketError(QAbstractSocket::SocketError){
-    qDebug() << "Socket Error: " << mSocket->errorString();
+void StaticProxyConnection::socketError(QAbstractSocket::SocketError er){
+    qDebug() << "[SP] Socket Error " << er << ": " << mSocket->socketDescriptor() << " "<< mSocket->errorString();
 
 }
 
 void StaticProxyConnection::sslErrors(const QList<QSslError> &errors){
-    qDebug() << "SSL Error on: ";
     foreach (const QSslError &error, errors)
-        qDebug() << error.errorString();
+        qDebug() << "[SP] SSL Error on: " << error.errorString();
 
 }
 
 void StaticProxyConnection::stop(){
     // needs implementation
+}
+
+void StaticProxyConnection::disconnected(){
+    qDebug() << "Disconnected...";
 }
