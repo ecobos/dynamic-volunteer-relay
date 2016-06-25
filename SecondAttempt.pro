@@ -20,13 +20,15 @@ SOURCES += main.cpp\
     Controller.cpp \
     StaticProxyConnection.cpp \
     SslServer.cpp \
-    RelayServer.cpp
+    RelayServer.cpp \
+    CommandControlInterface.cpp
 
 HEADERS  += mainwindow.h \
     Controller.h \
     StaticProxyConnection.h \
     SslServer.h \
-    RelayServer.h
+    RelayServer.h \
+    CommandControlInterface.h
 
 FORMS    += mainwindow.ui
 

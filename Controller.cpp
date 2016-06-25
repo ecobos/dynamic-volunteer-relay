@@ -1,10 +1,7 @@
 #include "Controller.h"
-#include <QUrl>
-#include <QNetworkRequest>
-#include <QNetworkAccessManager>
+
 
 #include <QJsonObject>
-#include <QJsonArray>
 #include <QFile>
 #include <QSettings>
 #include <QEventLoop>
@@ -15,86 +12,22 @@ Controller::Controller(QObject *parent) : QObject(parent)
 {
     mRelay = NULL;
     connect(parent, SIGNAL(stop()), this, SLOT(stopConnections()));
-    //getAvailableSPfromCC();
+
 }
 
-void Controller::login()
+void Controller::startUp()
 {
-    this->loadConfiguration();
-
-    qDebug() << "Contacting Command Control API: Login";
-    QNetworkAccessManager *networkManager_login = new QNetworkAccessManager(this);
-    QUrl url("https://api.censorbuster.com/auth/login");
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    QByteArray body("uuid=" + mUUID.toUtf8() + "&password=" + mPassword.toUtf8());
-    QNetworkReply *response = networkManager_login->post(request,body);
-
-    // Wait until we get a response
-    QEventLoop loop;
-    connect(response, SIGNAL(finished()), &loop, SLOT(quit()));
-    loop.exec();
-
-    qDebug() << "Got a response from login";
-    if (response->error() == QNetworkReply::NoError){
-        QString data = (QString) response->readAll();
-        qDebug() << data;
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(data.toUtf8());
-        QJsonObject jsonObject = jsonResponse.object();
-
-        mToken = jsonObject["token"].toString();
-        qDebug() << "Response: Token => "<< mToken;
-    }else{
-        qDebug() << ">> " << response->error() << response->errorString();
-        exit(-1);
-    }
-
-    networkManager_login->deleteLater();
+    mCommandControl = new CommandControlInterface(this);
+    Credentials config = this->loadConfiguration();
+    mCommandControl->setCredentials(config.uuid, config.password);
+    mCommandControl->login();
+    mCommandControl->getAvailableStaticProxy();
+    mCommandControl->status(ONLINE);
 }
 
-void Controller::goOnline()
-{
-    this->login();
 
-    qDebug() << "Contacting Command Control API: Going Online";
-    QNetworkAccessManager *networkManager_goOnline = new QNetworkAccessManager(this);
-    QUrl url("https://api.censorbuster.com/api/dvp");
-    QNetworkRequest request(url);
 
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    request.setRawHeader("Cache-Control", "no-cache");
-    request.setRawHeader("Authorization", "Bearer "+ mToken.toUtf8());
-
-    QByteArray body("is_available=1");
-
-    // Place request
-    QNetworkReply *response = networkManager_goOnline->put(request,body);
-
-    // Wait until we get a response
-    QEventLoop loop;
-    connect(response, SIGNAL(finished()), &loop, SLOT(quit()));
-    loop.exec();
-
-    // Response
-    qDebug() << "Got a response from trying to go online";
-    if (response->error() == QNetworkReply::NoError){
-        QString data = (QString) response->readAll();
-        qDebug() << data;
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(data.toUtf8());
-        QJsonObject jsonObject = jsonResponse.object();
-
-        QString availability = jsonObject["is_available"].toString();
-        qDebug() << ">> is_available => "<< availability;
-    }else{
-        qDebug() << ">> " << response->error();
-        return;
-    }
-
-    networkManager_goOnline->deleteLater();
-    this->getAvailableStaticProxies();
-}
-
-void Controller::loadConfiguration()
+Credentials Controller::loadConfiguration()
 {
     QSettings config("CensorBuster", "DynamicVolunteerRelay");
 
@@ -104,53 +37,26 @@ void Controller::loadConfiguration()
         this->getConfiguration();
     }
 
-    mUUID = config.value("uuid").toString();
-    mPassword = config.value("password").toString();
-    qDebug() << "Loading saved "<< mUUID <<" "<< mPassword;
+    Credentials credentials;
+    credentials.uuid = config.value("uuid").toString();
+    credentials.password = config.value("password").toString();
+    qDebug() << "Loading saved "<< credentials.uuid <<" "<< credentials.password;
+
+    return credentials;
 }
 
 void Controller::getConfiguration()
 {
-    qDebug() << "Contacting Command Control API: Register";
-    QNetworkAccessManager *networkManager_register = new QNetworkAccessManager(this);
-    //connect(networkManager_register, SIGNAL(finished(QNetworkReply*)), this, SLOT(saveConfiguration(QNetworkReply*)));
-    QUrl url("https://api.censorbuster.com/api/dvp");
-    QNetworkRequest request(url);
-    QByteArray params;
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-    QNetworkReply *response = networkManager_register->post(request, params);
+   QJsonObject* jsonObject = mCommandControl->registerApplication();
+   QSettings config("CensorBuster", "DynamicVolunteerRelay");
+   config.setValue("uuid", jsonObject->value("uuid").toString());
+   config.setValue("password", jsonObject->value("plaintext_password").toString());
+   qDebug() << "Assigned: " << jsonObject->value("uuid").toString() << " "<< jsonObject->value("plaintext_password").toString();
+   this->saveX509(jsonObject->value("x509"));
 
-    // Wait until we get a response
-    QEventLoop loop;
-    connect(response, SIGNAL(finished()), &loop, SLOT(quit()));
-    loop.exec();
-
-    this->saveConfiguration(response);
-
-    networkManager_register->deleteLater();
+   delete jsonObject;
 }
 
-void Controller::saveConfiguration(QNetworkReply* response)
-{
-    qDebug() << "Got a response from register";
-    if (response->error() == QNetworkReply::NoError){
-        QString data = (QString) response->readAll();
-        qDebug() << data;
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(data.toUtf8());
-        QJsonObject jsonObject = jsonResponse.object();
-
-        qDebug() << "creating config";
-        QSettings config("CensorBuster", "DynamicVolunteerRelay");
-        config.setValue("uuid", jsonObject["uuid"].toString());
-        config.setValue("password", jsonObject["plaintext_password"].toString());
-        qDebug() << "Assigned: " << jsonObject["uuid"].toString() << " "<< jsonObject["plaintext_password"].toString();
-        this->saveX509(jsonObject.value("x509"));
-
-    }else{
-        qDebug() << response->error();
-    }
-      response->deleteLater();
-}
 
 void Controller::saveX509(QJsonValue jsonValue){
 
@@ -193,23 +99,6 @@ void Controller::saveX509(QJsonValue jsonValue){
     key_file.close();
 }
 
-/**
- * Retrieves all available static proxies from an external server.
- * @brief Controller::getAvailableSPfromCC
- */
-void Controller::getAvailableStaticProxies(){
-    qDebug() << "Contacting Command Control API: Getting available Static Proxies";
-    QNetworkAccessManager *networkManager_getSPs = new QNetworkAccessManager(this);
-    connect(networkManager_getSPs, SIGNAL(finished(QNetworkReply*)), this, SLOT(onStaticProxyAttained(QNetworkReply*)));
-
-    QUrl url("https://api.censorbuster.com/api/sp");
-    QNetworkRequest request(url);
-    request.setRawHeader("Cache-Control", "no-cache");
-    request.setRawHeader("Authorization", "Bearer "+ mToken.toUtf8());
-    networkManager_getSPs->get(request);
-
-    //networkManager_getSPs->deleteLater();
-}
 
 /**
  * [Slot] Handles the network managers finished callback.
@@ -226,6 +115,7 @@ void Controller::onStaticProxyAttained(QNetworkReply* reply){
         QString host = jsonObject["ip"].toString();
         //quint16 port = jsonObject["port"].toInt();
         qDebug() << "Got Static Proxy: " << host;
+
         if(mRelay == NULL){
             this->startRelayServer();
         }
@@ -246,7 +136,7 @@ void Controller::onStaticProxyAttained(QNetworkReply* reply){
 void Controller::startRelayServer(){
     qDebug() << "Creating ClientConnection object";
     mRelay = new RelayServer(this);
-    connect(mRelay, &RelayServer::getStaticProxy, this, &Controller::getAvailableStaticProxies);
+    //connect(mRelay, &RelayServer::getStaticProxy, this, &Controller::getAvailableStaticProxies);
 }
 
 /**

@@ -4,10 +4,16 @@
 #include <QObject>
 #include <QSslSocket>
 #include <QNetworkReply>
-#include <QJsonDocument>
 #include <QJsonValue>
+#include <QJsonDocument>
 
 #include "RelayServer.h"
+#include "CommandControlInterface.h"
+
+struct Credentials{
+    QString uuid;
+    QString password;
+};
 
 class Controller : public QObject
 {
@@ -15,6 +21,7 @@ class Controller : public QObject
 public:
     explicit Controller(QObject *parent = 0);
     void goOnline();
+    void startUp();
 
 signals:
     void stop();
@@ -22,23 +29,21 @@ signals:
 
 public slots:
     void onStaticProxyAttained(QNetworkReply*);
-    void saveConfiguration(QNetworkReply*);
+
     void stopConnections();
-    void getAvailableStaticProxies();
 
 
 private:
     const QString mBaseURL = "https://api.censorbuster.com";
 
     RelayServer *mRelay;
+    CommandControlInterface *mCommandControl;
     QJsonDocument mResponse;
-    QString mToken;
-    QString mUUID;
-    QString mPassword;
+
 
     void startRelayServer();
     void login();
-    void loadConfiguration();
+    Credentials loadConfiguration();
     void getConfiguration();
     void saveX509(QJsonValue);
 };
