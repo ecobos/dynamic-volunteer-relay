@@ -44,7 +44,7 @@ MainWindow::~MainWindow()
  * @brief MainWindow::StartProxy
  */
 void MainWindow::startProxy(){
-    ui->statusLabel->setText(tr("Status: Running"));
+    ui->statusLabel->setText(tr("Status: Starting..."));
 
     /* Only create a new object if one doesn't exist.
     *  This is checked because a user is able to click the
@@ -54,9 +54,10 @@ void MainWindow::startProxy(){
     */
 
    mController = new Controller(this);
-   qDebug() << "Created a new ClientConnection object";
-
    mController->startUp();
+   ui->statusLabel->setText(tr("Status: Running"));
+   qDebug() << "Application Started";
+
    // Update the toggle button with the next state
    ui->proxyButton->setText(tr("Stop"));
 }
@@ -67,14 +68,15 @@ void MainWindow::startProxy(){
  * @brief MainWindow::StopProxy
  */
 void MainWindow::stopProxy(){
-    ui->statusLabel->setText(tr("Status: Stopped"));
+    ui->statusLabel->setText(tr("Status: Stopping..."));
     emit stop();
     mController->deleteLater(); // Deletes the object being pointed at
     mController = NULL; // Also remove pointer address
     qDebug() << "stop listening fired";
+    ui->statusLabel->setText(tr("Status: Stopped"));
 
     // Update the toggle button with the next state
-    ui->proxyButton->setText(tr("Start Volunteering"));
+    ui->proxyButton->setText(tr("Start"));
 }
 
 void MainWindow::toggle(){

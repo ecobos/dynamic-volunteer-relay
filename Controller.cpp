@@ -25,8 +25,6 @@ void Controller::startUp()
     mCommandControl->status(ONLINE);
 }
 
-
-
 Credentials Controller::loadConfiguration()
 {
     QSettings config("CensorBuster", "DynamicVolunteerRelay");

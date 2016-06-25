@@ -5,11 +5,12 @@
 #include <QEventLoop>
 #include <QJsonDocument>
 
-const QString CommandControlInterface::LOGIN_ENDPOINT = "https://api.censorbuster.com/auth/login";
-const QString CommandControlInterface::DVP_ENDPOINT = "https://api.censorbuster.com/api/dvp";
-const QString CommandControlInterface::SP_ENDPOINT = "https://api.censorbuster.com/api/sp";
-const QString CommandControlInterface::ONLINE_ENDPOINT = "https://api.censorbuster.com/api/dvp/online";
-const QString CommandControlInterface::OFFLINE_ENDPOINT = "https://api.censorbuster.com/api/dvp/offline";
+const QString CommandControlInterface::DOMAIN = "https://api.censorbuster.com";
+const QString CommandControlInterface::LOGIN_ENDPOINT = CommandControlInterface::DOMAIN + "/auth/login";
+const QString CommandControlInterface::DVP_ENDPOINT = CommandControlInterface::DOMAIN + "/api/dvp";
+const QString CommandControlInterface::SP_ENDPOINT = CommandControlInterface::DOMAIN + "/api/sp";
+const QString CommandControlInterface::ONLINE_ENDPOINT = CommandControlInterface::DVP_ENDPOINT + "/online";
+const QString CommandControlInterface::OFFLINE_ENDPOINT = CommandControlInterface::DVP_ENDPOINT + "/offline";
 
 CommandControlInterface::CommandControlInterface(QObject *parent) : QObject(parent)
 {
@@ -25,7 +26,7 @@ void CommandControlInterface::login()
 {
     if(mUUID == NULL || mPassword == NULL)
     {
-        this->shutdown("Need to set UUID and Password");
+        this->shutdown("Need to set UUID and Password: call setter first");
     }
 
     qDebug() << "Contacting Command Control API";
@@ -92,7 +93,7 @@ void CommandControlInterface::status(Status newStatus)
     connect(response, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();
 
-    int httpStatus = response->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    //int httpStatus = response->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 }
 
 QString CommandControlInterface::getAvailableStaticProxy()

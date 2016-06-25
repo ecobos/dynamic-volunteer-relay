@@ -24,6 +24,7 @@ public:
     void shutdown(const QString &);
     QJsonObject* registerApplication();
 
+    static const QString DOMAIN;
     static const QString LOGIN_ENDPOINT;
     static const QString DVP_ENDPOINT;
     static const QString SP_ENDPOINT;
