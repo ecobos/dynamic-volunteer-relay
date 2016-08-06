@@ -21,7 +21,7 @@ void Controller::startUp()
     Credentials config = this->loadConfiguration();
     mCommandControl->setCredentials(config.uuid, config.password);
     mCommandControl->login();
-    mCommandControl->getAvailableStaticProxy();
+    this->startRelayServer(mCommandControl->getAvailableStaticProxy());
     mCommandControl->status(ONLINE);
 }
 
@@ -30,10 +30,10 @@ Credentials Controller::loadConfiguration()
     QSettings config("CensorBuster", "DynamicVolunteerRelay");
 
     // If the UUID or Password are not set, we need to create them
-    if(!config.contains("uuid") || !config.contains("password"))
-    {
+//    if(!config.contains("uuid") || !config.contains("password"))
+//    {
         this->getConfiguration();
-    }
+//    }
 
     Credentials credentials;
     credentials.uuid = config.value("uuid").toString();
@@ -59,7 +59,7 @@ void Controller::getConfiguration()
 void Controller::saveX509(QJsonValue jsonValue){
 
     // SAVE CERTIFICATE
-    QFile cert_file("dvp_cert_cc_signed.crt");
+    QFile cert_file("dvp_cert_cc_signed.cert.pem");
     if(!cert_file.open(QFile::WriteOnly | QFile::Text))
     {
         qDebug() << "Could not open file for writing";
@@ -82,7 +82,7 @@ void Controller::saveX509(QJsonValue jsonValue){
     cert_file.close();
 
     // SAVE CERTIFICATE KEY
-    QFile key_file("dvp_cert_cc_signed.key");
+    QFile key_file("dvp_cert_cc_signed.key.pem");
     if(!key_file.open(QFile::WriteOnly | QFile::Text))
     {
         qDebug() << "Could not open key file for writing";
@@ -115,7 +115,7 @@ void Controller::onStaticProxyAttained(QNetworkReply* reply){
         qDebug() << "Got Static Proxy: " << host;
 
         if(mRelay == NULL){
-            this->startRelayServer();
+            this->startRelayServer(mCommandControl->getAvailableStaticProxy());
         }
         mRelay->setStaticProxy(host, 443);
         qDebug() << "Got Static Proxy configuration information from Command Control";
@@ -131,10 +131,13 @@ void Controller::onStaticProxyAttained(QNetworkReply* reply){
  * Starts the client server.
  * @brief Controller::startClientServer
  */
-void Controller::startRelayServer(){
-    qDebug() << "Creating ClientConnection object";
-    mRelay = new RelayServer(this);
-    //connect(mRelay, &RelayServer::getStaticProxy, this, &Controller::getAvailableStaticProxies);
+void Controller::startRelayServer(const QString & hostStaticProxy_IP){
+    if(mRelay == NULL)
+    {
+        mRelay = new RelayServer(this);
+    }
+    mRelay->setStaticProxy(hostStaticProxy_IP, 443);
+
 }
 
 /**

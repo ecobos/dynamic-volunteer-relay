@@ -24,18 +24,23 @@ SslServer::SslServer(QObject * parent) : QTcpServer(parent)
 void SslServer::incomingConnection(qintptr socketDescriptor)
 {
     QSslSocket *mSslSocket = new QSslSocket(this);
-    mSslSocket->setSocketDescriptor(socketDescriptor);
-    mSslSocket->setProtocol(mProtocol);
-    mSslSocket->setLocalCertificate(mLocalCertificate);
-    mSslSocket->setPrivateKey(mPrivateKey);
-    mSslSocket->startServerEncryption();
-    this->addPendingConnection(mSslSocket);
+    if(mSslSocket->setSocketDescriptor(socketDescriptor))
+    {
+        mSslSocket->setProtocol(mProtocol);
+        mSslSocket->setLocalCertificate(mLocalCertificate);
+        mSslSocket->setPrivateKey(mPrivateKey);
+        //mSslSocket->startServerEncryption();
+        this->addPendingConnection(mSslSocket);
+    }
+    else
+    {
+        delete mSslSocket;
+        qDebug() << "QSslSocket pointer deleted";
+    }
+
+
 }
 
-/*QTcpSocket* SslServer::nextPendingConnection(){
-    qDebug() << "Getting next pending connection";
-    return this->nextPendingConnection();
-}*/
 
 /**
  * Sets the server's certificate.
@@ -43,7 +48,8 @@ void SslServer::incomingConnection(qintptr socketDescriptor)
  * @brief SslServer::setSslLocalCertificate
  * @param certificate
  */
-void SslServer::setSslLocalCertificate(const QSslCertificate &certificate){
+void SslServer::setSslLocalCertificate(const QSslCertificate &certificate)
+{
     this->mLocalCertificate = certificate;
 }
 
@@ -53,7 +59,8 @@ void SslServer::setSslLocalCertificate(const QSslCertificate &certificate){
  * @brief SslServer::setSslPrivateKey
  * @param key
  */
-void SslServer::setSslPrivateKey(const QSslKey &key){
+void SslServer::setSslPrivateKey(const QSslKey &key)
+{
     this->mPrivateKey = key;
 }
 
@@ -65,7 +72,8 @@ void SslServer::setSslPrivateKey(const QSslKey &key){
  * @brief SslServer::setSslProtocol
  * @param protocol
  */
-void SslServer::setSslProtocol(QSsl::SslProtocol protocol){
+void SslServer::setSslProtocol(QSsl::SslProtocol protocol)
+{
     this->mProtocol = protocol;
 }
 
@@ -77,19 +85,8 @@ void SslServer::setSslProtocol(QSsl::SslProtocol protocol){
  * @brief SslServer::setSslPeerVerifyMode
  * @param verifyMode
  */
-void SslServer::setSslPeerVerifyMode(QSslSocket::PeerVerifyMode verifyMode){
+void SslServer::setSslPeerVerifyMode(QSslSocket::PeerVerifyMode verifyMode)
+{
     this->mPeerMode = verifyMode;
 }
 
-/**
- * Public slot that will handle SSL Socket generated errors.
- *
- * @brief SslServer::onSslErrors
- * @param errors
- */
-void SslServer::onSslErrors(const QList <QSslError> & errors){
-    // UNDER DEVELOPMENT
-    qDebug() << "Errors with SSL";
-    foreach (const QSslError &error, errors)
-        qDebug() << error.errorString();
-}

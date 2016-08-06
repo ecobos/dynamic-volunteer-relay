@@ -34,6 +34,9 @@ public slots:
     void stopListening();
     void clientToServerWrite();
     void serverToClientWrite();
+    void handshakeSuccessful();
+    void onSslErrors(const QList <QSslError> &);
+    void onPeerVerifyError(const QSslError &);
 
 
 private:

@@ -9,7 +9,7 @@ StaticProxyConnection::StaticProxyConnection(QObject *parent): QObject(parent)
     connect(mSocket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(socketStateChanged(QAbstractSocket::SocketState)));
     //connect(mSocket, SIGNAL(encrypted()), this, SLOT(socketEncrypted()));
     connect(mSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(socketError(QAbstractSocket::SocketError)));
-    //connect(mSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrors(QList<QSslError>)));
+    connect(mSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(sslErrors(QList<QSslError>)));
     //connect(mSocket, SIGNAL(encryptedBytesWritten(qint64)), this, SLOT(addToEncryptBytesWritten(qint64)));
     connect(mSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
     connect(mSocket, SIGNAL(disconnected()), this, SLOT(disconnected()));

@@ -34,14 +34,13 @@ public slots:
 
 
 private:
-    const QString mBaseURL = "https://api.censorbuster.com";
 
-    RelayServer *mRelay;
-    CommandControlInterface *mCommandControl;
+    RelayServer* mRelay;
+    CommandControlInterface* mCommandControl;
     QJsonDocument mResponse;
 
 
-    void startRelayServer();
+    void startRelayServer(const QString &);
     void login();
     Credentials loadConfiguration();
     void getConfiguration();

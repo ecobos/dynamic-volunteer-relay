@@ -17,6 +17,7 @@
 
 class SslServer : public QTcpServer
 {
+    Q_OBJECT
 public:
     SslServer(QObject * parent = 0);
     void setSslLocalCertificate(const QSslCertificate &certificate);
@@ -28,7 +29,7 @@ public:
 
 public slots:
     void incomingConnection(qintptr socketDescriptor) Q_DECL_OVERRIDE;
-    void onSslErrors(const QList <QSslError> & errors);
+
 
 private:
 

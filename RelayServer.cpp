@@ -9,8 +9,12 @@ RelayServer::RelayServer(QObject *parent) : QObject(parent){
      *  one that is recognized by Windows Explorer as a certificate,
      *  which .pem is not.
      */
-    QFile certFile("dvp_cert_cc_signed.crt");
-    certFile.open(QIODevice::ReadOnly);
+    QFile certFile("dvp_cert_cc_signed.cert.pem");
+    //certFile.open(QIODevice::ReadOnly);
+    if(!certFile.open(QIODevice::ReadOnly ))
+    {
+        qDebug() << "Could not open file for reading";
+    }
     QSslCertificate certificate( &certFile, QSsl::Pem );
     certFile.close();
 
@@ -20,9 +24,13 @@ RelayServer::RelayServer(QObject *parent) : QObject(parent){
      *  rights on these files are very important, and some programs will refuse to
      *  load these certificates if they are set wrong.
      */
-    QFile keyFile("dvp_cert_cc_signed.key");
-    keyFile.open(QIODevice::ReadOnly);   
-    QSslKey sslKey( &keyFile, QSsl::Rsa, QSsl::Pem );
+    QFile keyFile("dvp_cert_cc_signed.key.pem");
+    //keyFile.open(QIODevice::ReadOnly);
+    if(!keyFile.open(QIODevice::ReadOnly))
+    {
+        qDebug() << "Could not open file for reading";
+    }
+    QSslKey sslKey( &keyFile, QSsl::Rsa, QSsl::Pem, QSsl::PrivateKey);
     keyFile.close();
 
     mSslServer->setSslLocalCertificate( certificate );
@@ -36,6 +44,7 @@ RelayServer::RelayServer(QObject *parent) : QObject(parent){
      */
     mSslServer->setSslProtocol( QSsl::TlsV1_0 );
 
+
     /*
      * This setting does not apply to a server but I am leaving it
      *  just as a note of something that will need to be considered
@@ -45,7 +54,7 @@ RelayServer::RelayServer(QObject *parent) : QObject(parent){
      *
      *  Ref: http://doc.qt.io/qt-5/qsslsocket.html#PeerVerifyMode-enum
      */
-    mSslServer->setSslPeerVerifyMode( QSslSocket::VerifyNone );
+    //mSslServer->setSslPeerVerifyMode( QSslSocket::VerifyNone );
 
     // newConnection() is a signal emitted by SslServer Class and
     //  is inherited from the QTcpServer Class
@@ -54,10 +63,10 @@ RelayServer::RelayServer(QObject *parent) : QObject(parent){
     // Listen in on any address accessible through the local interfaces.
     //  This will likely be localhost (127.0.0.1:8080)
     if(!mSslServer->listen(QHostAddress::Any, 8080)){
-        qDebug() << "Server could not start";
+        qDebug() << "Relay Server could not start :(";
     }
     else{
-        qDebug() << "Client server started and listening.";
+        qDebug() << "Relay Server started and listening...";
     }
 }
 
@@ -97,9 +106,23 @@ void RelayServer::connectToSPorFail(){
 void RelayServer::acceptNewConnection(){
     //Get the next pending connection
     mClientSocket = (QSslSocket *) mSslServer->nextPendingConnection();
-    qDebug() << "New client connection accepted";
-    this->connectToSPorFail();
-    connect(mClientSocket, SIGNAL(readyRead()), this, SLOT(clientToServerWrite()));
+
+    connect(mClientSocket, SIGNAL(encrypted()), this, SLOT(handshakeSuccessful()));
+    connect(mClientSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
+    connect(mClientSocket, SIGNAL(peerVerifyError(QSslError)), this, SLOT(onPeerVerifyError(QSslError)));
+
+    mClientSocket->startServerEncryption();
+
+    //this->connectToSPorFail();
+    //connect(mClientSocket, SIGNAL(readyRead()), this, SLOT(clientToServerWrite()));
+    //qDebug() << "Connection encrypted? " << mClientSocket->isEncrypted();
+
+}
+
+void RelayServer::handshakeSuccessful()
+{
+    qDebug() << "New client connection accepted" << mClientSocket->isEncrypted();
+    mClientSocket->write("\nHello there\r\n\r\n");
 }
 
 /**
@@ -127,6 +150,27 @@ void RelayServer::serverToClientWrite(){
     QByteArray data = mSPConnection->readBytesAvailable();
     qDebug() << "[Client] Actually read " << data.length() << " from server";
     mClientSocket->write(data);
+}
+
+/**
+ * Public slot that will handle SSL Socket generated errors.
+ *
+ * @brief SslServer::onSslErrors
+ * @param errors
+ */
+void RelayServer::onSslErrors(const QList <QSslError> & errors)
+{
+    qDebug() << "Errors with SSL";
+    foreach (const QSslError &error, errors)
+    {
+        qDebug() << error.errorString();
+    }
+
+}
+
+void RelayServer::onPeerVerifyError(const QSslError & error)
+{
+    qDebug() << error.errorString();
 }
 
 /**
