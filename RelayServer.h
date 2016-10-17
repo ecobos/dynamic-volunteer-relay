@@ -10,6 +10,7 @@
 #include <QObject>
 #include <QString>
 #include <QSslSocket>
+#include <QDataStream>
 
 #include "SslServer.h"
 #include "StaticProxyConnection.h"
@@ -43,7 +44,8 @@ private:
     void connectToSPorFail();
     SslServer *mSslServer;
     QSslSocket *mClientSocket; 
-    StaticProxyConnection *mSPConnection;
+    QDataStream mClientDataStream;
+    StaticProxyConnection *mStaticProxy;
     QString mSP_Host;
     quint16 mSP_Port;
 };

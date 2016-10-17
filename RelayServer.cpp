@@ -79,6 +79,38 @@ RelayServer::RelayServer(QObject *parent) : QObject(parent){
 void RelayServer::setStaticProxy(const QString & host, quint16 port){
     mSP_Port = port;
     mSP_Host = host;
+    //mSP_Host = "127.0.0.1";
+    //mSP_Port = 8081;
+
+}
+
+/**
+ * [Slot] Accepts the next pending SSL socket conenction.
+ * @brief ClientConnection::acceptNewConnection
+ */
+void RelayServer::acceptNewConnection()
+{
+    mClientSocket = (QSslSocket *) mSslServer->nextPendingConnection();
+
+    //mClientDataStream.setDevice(mClientSocket);
+    //mClientDataStream.setVersion(QDataStream::Qt_5_6);
+
+    connect(mClientSocket, SIGNAL(encrypted()), this, SLOT(handshakeSuccessful()));
+    connect(mClientSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
+    connect(mClientSocket, SIGNAL(peerVerifyError(QSslError)), this, SLOT(onPeerVerifyError(QSslError)));
+
+    // Initiate the TLS handshake
+    mClientSocket->startServerEncryption();
+    qDebug() << "Connection received, waiting to encrypt";
+}
+
+/**
+ * [Slot] Called when the TLS handshake succeeds
+ * @brief RelayServer::handshakeSuccessful
+ */
+void RelayServer::handshakeSuccessful()
+{
+    this->connectToSPorFail();
 }
 
 /**
@@ -86,43 +118,13 @@ void RelayServer::setStaticProxy(const QString & host, quint16 port){
  * @brief ClientConnection::connectToSPorFail
  */
 void RelayServer::connectToSPorFail(){
-    qDebug() << "Connecting to SP";
-    mSPConnection = new StaticProxyConnection(this);
-    if(mSP_Host == NULL || mSP_Port == 0 ){
-        emit getStaticProxy();
-        return;
-    }
-    mSPConnection->connectTo(mSP_Host, mSP_Port);
-    if(!mSPConnection->isOpen()){
-        qDebug() << "SP connection failed";
-    }
-    connect(mSPConnection, SIGNAL(doRead()), this, SLOT(serverToClientWrite()));
-}
+    qDebug() << "Connecting to Static Proxy...";
+    mStaticProxy = new StaticProxyConnection(this);
+    mStaticProxy->connectTo(mSP_Host, mSP_Port);
 
-/**
- * Accepts the next pending SSL socket conenction.
- * @brief ClientConnection::acceptNewConnection
- */
-void RelayServer::acceptNewConnection(){
-    //Get the next pending connection
-    mClientSocket = (QSslSocket *) mSslServer->nextPendingConnection();
+    qDebug() << "Connected to Static Proxy and waiting for data transfer";
 
-    connect(mClientSocket, SIGNAL(encrypted()), this, SLOT(handshakeSuccessful()));
-    connect(mClientSocket, SIGNAL(sslErrors(QList<QSslError>)), this, SLOT(onSslErrors(QList<QSslError>)));
-    connect(mClientSocket, SIGNAL(peerVerifyError(QSslError)), this, SLOT(onPeerVerifyError(QSslError)));
-
-    mClientSocket->startServerEncryption();
-
-    //this->connectToSPorFail();
-    //connect(mClientSocket, SIGNAL(readyRead()), this, SLOT(clientToServerWrite()));
-    //qDebug() << "Connection encrypted? " << mClientSocket->isEncrypted();
-
-}
-
-void RelayServer::handshakeSuccessful()
-{
-    qDebug() << "New client connection accepted" << mClientSocket->isEncrypted();
-    mClientSocket->write("\nHello there\r\n\r\n");
+    connect(mClientSocket, SIGNAL(readyRead()), this, SLOT(clientToServerWrite()));
 }
 
 /**
@@ -130,14 +132,14 @@ void RelayServer::handshakeSuccessful()
  * @brief ClientConnection::clientToServerWrite
  */
 void RelayServer::clientToServerWrite(){
-    qDebug() << "[Client] Received " << mClientSocket->bytesAvailable() << "bytes from client. Sending to server...";
+    qDebug() << "[RelayServer] Proposed " << mClientSocket->bytesAvailable() << "bytesAvailable from client";
 
-    // From Docs: QByteArray QIODevice::read(qint64 maxSize)
-    QByteArray data = mClientSocket->read(mClientSocket->bytesAvailable());
+    //if(mClientSocket->bytesAvailable() == 1){ mClientSocket->waitForReadyRead(1000);}
 
-    qDebug() << "[Client] Actually read " << data.length() << " from client";
-    // From Docs: qint64 QIODevice::write(const QByteArray & byteArray)
-    mSPConnection->write(data);
+    //QByteArray data = mClientSocket->read(mClientSocket->bytesAvailable());
+    QByteArray data = mClientSocket->readAll();
+    qDebug() << "[RelayServer] Request [" << data.length() << "] "<< data;
+    mStaticProxy->write(data);
 }
 
 /**
@@ -145,10 +147,10 @@ void RelayServer::clientToServerWrite(){
  * @brief ClientConnection::serverToClientWrite
  */
 void RelayServer::serverToClientWrite(){
-    qDebug() << "[Client] Received " << mSPConnection->bytesAvailable() << "bytes from server. Sending to client...";
+    qDebug() << "[RelayServer] Proposed " << mStaticProxy->bytesAvailable() << "bytesAvailable from server";
 
-    QByteArray data = mSPConnection->readBytesAvailable();
-    qDebug() << "[Client] Actually read " << data.length() << " from server";
+    QByteArray data = mStaticProxy->readBytesAvailable();
+    qDebug() << "[RelayServer] Response [" << data.length() << "] " << data;
     mClientSocket->write(data);
 }
 

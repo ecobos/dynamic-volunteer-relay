@@ -43,7 +43,7 @@ private:
     void startRelayServer(const QString &);
     void login();
     Credentials loadConfiguration();
-    void getConfiguration();
+    void getCredentials();
     void saveX509(QJsonValue);
 };
 

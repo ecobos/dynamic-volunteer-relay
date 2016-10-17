@@ -29,7 +29,6 @@ void SslServer::incomingConnection(qintptr socketDescriptor)
         mSslSocket->setProtocol(mProtocol);
         mSslSocket->setLocalCertificate(mLocalCertificate);
         mSslSocket->setPrivateKey(mPrivateKey);
-        //mSslSocket->startServerEncryption();
         this->addPendingConnection(mSslSocket);
     }
     else
@@ -37,8 +36,6 @@ void SslServer::incomingConnection(qintptr socketDescriptor)
         delete mSslSocket;
         qDebug() << "QSslSocket pointer deleted";
     }
-
-
 }
 
 

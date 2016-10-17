@@ -18,17 +18,11 @@ public:
     void disconnect();
 
 signals:
-    //void disconnected();
     void doRead();
 
 public slots:
-    void connected();
-    void addToEncryptBytesWritten(qint64 bytes);
-    void readyRead();
     void socketStateChanged(QAbstractSocket::SocketState);
-    void socketEncrypted();
     void socketError(QAbstractSocket::SocketError);
-    void sslErrors(const QList<QSslError> &);
     void stop();
     void disconnected();
 

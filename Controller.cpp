@@ -1,11 +1,8 @@
 #include "Controller.h"
-
-
 #include <QJsonObject>
 #include <QFile>
 #include <QSettings>
 #include <QEventLoop>
-
 #include <QFileInfo>
 
 Controller::Controller(QObject *parent) : QObject(parent)
@@ -30,10 +27,10 @@ Credentials Controller::loadConfiguration()
     QSettings config("CensorBuster", "DynamicVolunteerRelay");
 
     // If the UUID or Password are not set, we need to create them
-//    if(!config.contains("uuid") || !config.contains("password"))
-//    {
-        this->getConfiguration();
-//    }
+    if(!config.contains("uuid") || !config.contains("password"))
+    {
+        this->getCredentials();
+    }
 
     Credentials credentials;
     credentials.uuid = config.value("uuid").toString();
@@ -43,7 +40,7 @@ Credentials Controller::loadConfiguration()
     return credentials;
 }
 
-void Controller::getConfiguration()
+void Controller::getCredentials()
 {
    QJsonObject* jsonObject = mCommandControl->registerApplication();
    QSettings config("CensorBuster", "DynamicVolunteerRelay");
@@ -99,6 +96,7 @@ void Controller::saveX509(QJsonValue jsonValue){
 
 
 /**
+ * -- UNUSED --
  * [Slot] Handles the network managers finished callback.
  * @brief Controller::onSPsAttained
  * @param reply result of the network request
@@ -117,7 +115,7 @@ void Controller::onStaticProxyAttained(QNetworkReply* reply){
         if(mRelay == NULL){
             this->startRelayServer(mCommandControl->getAvailableStaticProxy());
         }
-        mRelay->setStaticProxy(host, 443);
+        mRelay->setStaticProxy(host, 8081);
         qDebug() << "Got Static Proxy configuration information from Command Control";
     } else {
         qDebug() << "Something went wrong with getting config file from CC";
@@ -136,8 +134,12 @@ void Controller::startRelayServer(const QString & hostStaticProxy_IP){
     {
         mRelay = new RelayServer(this);
     }
-    mRelay->setStaticProxy(hostStaticProxy_IP, 443);
+    qDebug() << "SP ip" << hostStaticProxy_IP;
+    //Uncommend here for production
+    mRelay->setStaticProxy(hostStaticProxy_IP, 8080);
 
+    //For local testing
+    //mRelay->setStaticProxy("127.0.0.1", 8081);
 }
 
 /**
